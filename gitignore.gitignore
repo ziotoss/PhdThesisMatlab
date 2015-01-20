@@ -43,6 +43,6 @@ Temporary Items
 .apdisk
 
 # Personal exceptions
-.txt
-.asv
-.mat
+*.txt
+*.asv
+*.mat
