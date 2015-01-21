@@ -217,5 +217,6 @@ pip-log.txt
 
 ######MATLAB######
 *.asv
+*.mat
 *.fig
 *.txt
