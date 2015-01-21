@@ -26,14 +26,7 @@ function [dictionary, data] = load_dataset(path, options)
 
         data = bowMatrix;
     elseif ~isempty(strfind(path, '20NewsGroups'))
-        if strcmp(options.data.type, 'train')
-            fileName = [path filesep 'matlab' filesep 'train.data'];
-        elseif strcmp(options.data.type, 'test')
-            fileName = [path filesep 'matlab' filesep 'test.data'];
-        else
-            disp('Invalid data type. Aborting program');
-            return;
-        end
+        fileName = [path filesep 'matlab' filesep 'train.data'];
         fid = fopen(fileName);
         C = textscan(fid, '%d%d%d', 'delimiter', ' ');
         fclose(fid);

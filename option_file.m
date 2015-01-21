@@ -1,5 +1,4 @@
 %%%%% DATA RELATED OPTIONS %%%%%
-options.data.type = 'test';
 options.data.normalize = 0;
 options.data.preprocess.on = 0;
 options.data.preprocess.type = 'tf-idf';
