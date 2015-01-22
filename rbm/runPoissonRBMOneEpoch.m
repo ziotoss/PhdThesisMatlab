@@ -1,6 +1,7 @@
 function [errsum, reconerr, timeTaken] = runPoissonRBMOneEpoch(data, params, rbmModel, runtimeParams)
     errsum = 0;
     reconerr = 0;
+    delta = params.epsilon / params.batchSize;
     
     start = toc;
     for batch = 1:size(data,3)
@@ -50,16 +51,13 @@ function [errsum, reconerr, timeTaken] = runPoissonRBMOneEpoch(data, params, rbm
                                             params.activationAveragingConstant * ...
                                             mean(possigmoid, 2);
         
-        runtimeParams.vishidinc = runtimeParams.momentum*runtimeParams.vishidinc + ...
-                    params.epsilon*(posprods-negprods);
-        runtimeParams.visbiasinc = runtimeParams.momentum*runtimeParams.visbiasinc + ...
-                    params.epsilon*(posvisact-negvisact);
-        runtimeParams.hidbiasinc = runtimeParams.momentum*runtimeParams.hidbiasinc + ...
-                    params.epsilon*(poshidact-neghidact); % + sparsityinc 
+        runtimeParams.vishidinc = runtimeParams.momentum*runtimeParams.vishidinc + posprods - negprods;
+        runtimeParams.visbiasinc = runtimeParams.momentum*runtimeParams.visbiasinc + posvisact - negvisact;
+        runtimeParams.hidbiasinc = runtimeParams.momentum*runtimeParams.hidbiasinc + poshidact - neghidact; % + sparsityinc 
 
-        rbmModel.vishid = rbmModel.vishid + runtimeParams.vishidinc;
-        rbmModel.visbiases = rbmModel.visbiases + runtimeParams.visbiasinc;
-        rbmModel.hidbiases = rbmModel.hidbiases + runtimeParams.hidbiasinc;
+        rbmModel.vishid = rbmModel.vishid + delta * runtimeParams.vishidinc;
+        rbmModel.visbiases = rbmModel.visbiases + delta * runtimeParams.visbiasinc;
+        rbmModel.hidbiases = rbmModel.hidbiases + delta * runtimeParams.hidbiasinc;
         rbmModel.batchposhidprob(:, :, batch) = possigmoid;
     end
 

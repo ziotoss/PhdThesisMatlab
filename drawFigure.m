@@ -1,4 +1,4 @@
-function drawFigure(data, rbmModel)
+function drawFigure(data, path, rbmModel)
 
     addpath('rbm');
 

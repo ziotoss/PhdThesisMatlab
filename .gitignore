@@ -216,6 +216,7 @@ pip-log.txt
 .mr.developer.cfg
 
 ######MATLAB######
+scratch/
 *.asv
 *.mat
 *.fig
