@@ -60,7 +60,7 @@ fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 
 % Create an occurrence matrix for each test song
 start_time = tic;
-partition_num = 10;
+partition_num = 5;
 fprintf(1, 'Creating the occurrence matrix using the unique dictionary.');
 for i = 1:length(test_songs)
     episodes_per_partition = floor(length(test_songs(i).episodes) / partition_num);
@@ -93,3 +93,5 @@ for i = 1:length(test_songs)
 end
 time_elapsed = toc(start_time);
 fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
+
+save('scratch\test_songs_partition_5.mat', 'test_songs');
