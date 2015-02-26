@@ -4,14 +4,15 @@ classdef ReLURBMParameters < handle
     
     properties
 
-        type
+        vistype
+        hidtype
         
         initvisbiases
         inithidbiases
         initMult
         
-        epsilon     = 0.003;   % Learning rate 
-        weightcost  = 0.002;
+        epsilon  % Learning rate 
+        weightcost
 
         initialmomentum  = 0.5;
         finalmomentum    = 0.9;

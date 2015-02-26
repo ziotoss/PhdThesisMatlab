@@ -7,9 +7,9 @@ function TrainRBM(scratch, path)
     end
     
     if ~isempty(strfind(path, 'Naver'))
-        fileName = 'naver_dataset.mat';
+        fileName = ['naver_dataset_' options.data.type '.mat'];
     elseif ~isempty(strfind(path, '20NewsGroups'))
-        fileName = '20newsgroups_dataset.mat';
+        fileName = ['20newsgroups_dataset_' options.data.type '.mat'];
     end
     
     fprintf(1, 'Loading dataset');

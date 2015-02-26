@@ -16,9 +16,9 @@ function [params, rbmModel, runtimeParams] = runRBM(data, params, logfile)
             runtimeParams.momentum = params.finalmomentum;
         end
         
-        if strcmp(params.type, 'binary')
+        if strcmp(params.vistype, 'binary')
             [errsum, reconerr, timeTaken] = runBinaryRBMOneEpoch(data, params, rbmModel, runtimeParams);
-        elseif strcmp(params.type, 'poisson')
+        elseif strcmp(params.vistype, 'poisson')
             [errsum, reconerr, timeTaken] = runPoissonRBMOneEpoch(data, params, rbmModel, runtimeParams);
         end
 

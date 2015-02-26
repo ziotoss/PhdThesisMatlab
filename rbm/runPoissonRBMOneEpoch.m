@@ -1,7 +1,6 @@
 function [errsum, reconerr, timeTaken] = runPoissonRBMOneEpoch(data, params, rbmModel, runtimeParams)
     errsum = 0;
     reconerr = 0;
-    delta = params.epsilon / params.batchSize;
     
     start = toc;
     for batch = 1:size(data,3)
@@ -10,17 +9,17 @@ function [errsum, reconerr, timeTaken] = runPoissonRBMOneEpoch(data, params, rbm
         visbiasesrep = repmat(rbmModel.visbiases,1, size(data,2));
 
         X = data(:, :, batch);
-
+        numcases = size(data, 2);
+        
         %%%%% START POSITIVE PHASE p(h=1 | v) %%%%%
         D = sum(X, 1);
         pnetinput = rbmModel.vishid*X + hidbiasesrep .* repmat(D, size(hidbiasesrep, 1), 1);
         possigmoid   = 1./(1 + exp( - pnetinput)  );
 
         poshidstates = possigmoid > rand(size(possigmoid));
-        posnetinputre = possigmoid;
 
-        posprods     = posnetinputre * X';
-        poshidact    = sum(posnetinputre, 2);
+        posprods     = possigmoid * X';
+        poshidact    = sum(possigmoid, 2);
         posvisact    = sum(X, 2);
 
         %%%%% START NEGATIVE PHASE p(v=1 | h) %%%%%
@@ -32,10 +31,10 @@ function [errsum, reconerr, timeTaken] = runPoissonRBMOneEpoch(data, params, rbm
         negdata = negdata';
 
         nnetinput = rbmModel.vishid*negdata + hidbiasesrep .* repmat(D, size(hidbiasesrep, 1), 1);
-        negnetinputre= 1./(1 + exp( - nnetinput)  );
+        negsigmoid= 1./(1 + exp( - nnetinput)  );
 
-        negprods    = negnetinputre * negdata';
-        neghidact   = sum(negnetinputre, 2);
+        negprods    = negsigmoid * negdata';
+        neghidact   = sum(negsigmoid, 2);
         negvisact   = sum(negdata, 2);
 
         %%%%% ERROR CALCULATION %%%%%
@@ -51,13 +50,16 @@ function [errsum, reconerr, timeTaken] = runPoissonRBMOneEpoch(data, params, rbm
                                             params.activationAveragingConstant * ...
                                             mean(possigmoid, 2);
         
-        runtimeParams.vishidinc = runtimeParams.momentum*runtimeParams.vishidinc + posprods - negprods;
-        runtimeParams.visbiasinc = runtimeParams.momentum*runtimeParams.visbiasinc + posvisact - negvisact;
-        runtimeParams.hidbiasinc = runtimeParams.momentum*runtimeParams.hidbiasinc + poshidact - neghidact; % + sparsityinc 
+        runtimeParams.vishidinc = runtimeParams.momentum*runtimeParams.vishidinc +  ...
+                                params.epsilon * ((posprods - negprods) / numcases - params.weightcost * rbmModel.vishid);
+        runtimeParams.visbiasinc = runtimeParams.momentum*runtimeParams.visbiasinc + ...
+                                (params.epsilon / numcases) * (posvisact - negvisact);
+        runtimeParams.hidbiasinc = runtimeParams.momentum*runtimeParams.hidbiasinc + ...
+                                (params.epsilon / numcases) * (poshidact - neghidact); % + sparsityinc 
 
-        rbmModel.vishid = rbmModel.vishid + delta * runtimeParams.vishidinc;
-        rbmModel.visbiases = rbmModel.visbiases + delta * runtimeParams.visbiasinc;
-        rbmModel.hidbiases = rbmModel.hidbiases + delta * runtimeParams.hidbiasinc;
+        rbmModel.vishid = rbmModel.vishid + runtimeParams.vishidinc;
+        rbmModel.visbiases = rbmModel.visbiases + runtimeParams.visbiasinc;
+        rbmModel.hidbiases = rbmModel.hidbiases + runtimeParams.hidbiasinc;
         rbmModel.batchposhidprob(:, :, batch) = possigmoid;
     end
 

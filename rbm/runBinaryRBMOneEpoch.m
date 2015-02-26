@@ -13,13 +13,17 @@ function [errsum, reconerr, timeTaken] = runBinaryRBMOneEpoch(data, params, rbmM
 
         %%%%% START POSITIVE PHASE p(h=1 | v) %%%%%
         pnetinput = rbmModel.vishid*X + hidbiasesrep;
-        possigmoid   = 1./(1 + exp( - pnetinput)  );
+        
+        if strcmp(params.hidtype, 'linear')
+            possigmoid = pnetinput;
+        else
+            possigmoid   = 1./(1 + exp( - pnetinput)  );
+        end
 
         poshidstates = possigmoid > rand(size(possigmoid));
-        posnetinputre = possigmoid;
 
-        posprods     = posnetinputre * X';
-        poshidact    = sum(posnetinputre, 2);
+        posprods     = possigmoid * X';
+        poshidact    = sum(possigmoid, 2);
         posvisact    = sum(X, 2);
 
         %%%%% START NEGATIVE PHASE p(v=1 | h) %%%%%
@@ -27,10 +31,15 @@ function [errsum, reconerr, timeTaken] = runBinaryRBMOneEpoch(data, params, rbmM
         negdata = 1./(1 + exp( - negdata)  );
 
         nnetinput = rbmModel.vishid*negdata + hidbiasesrep;
-        negnetinputre= 1./(1 + exp( - nnetinput)  );
+        
+        if strcmp(params.hidtype, 'linear')
+            negsigmoid = nnetinput;
+        else
+            negsigmoid= 1./(1 + exp( - nnetinput)  );
+        end
 
-        negprods    = negnetinputre * negdata';
-        neghidact   = sum(negnetinputre, 2);
+        negprods    = negsigmoid * negdata';
+        neghidact   = sum(negsigmoid, 2);
         negvisact   = sum(negdata, 2);
 
         %%%%% ERROR CALCULATION %%%%%
