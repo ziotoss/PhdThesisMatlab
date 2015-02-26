@@ -7,8 +7,10 @@ D = dir(file_path);
 D(1:2) = [];
 test_songs = struct;
 
-vocabs = [];
+start_time = tic;
+fprintf(1, 'Gathering song information.');
 for i = 1 : length(D)
+    vocabs = [];
     fid = fopen([file_path filesep D(i).name]);
     C = textscan(fid, '%s', 'delimiter', '');
     fclose(fid);
@@ -51,30 +53,43 @@ for i = 1 : length(D)
         test_songs(i).episodes(j).content_hts_type = hts_types;
         vocabs = [vocabs; hts_words];
     end
+    test_songs(i).dictionary = unique(vocabs);
 end
-
-% Create unique dictionary
-dictionary = unique(vocabs);
-occ_mat = zeros(length(test_songs), length(dictionary));
+time_elapsed = toc(start_time);
+fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 
 % Create an occurrence matrix for each test song
+start_time = tic;
+partition_num = 10;
 fprintf(1, 'Creating the occurrence matrix using the unique dictionary.');
 for i = 1:length(test_songs)
-    for j = 1:length(test_songs(i).episodes)
-        words = test_songs(i).episodes(j).content_hts;
-        for k = 1:length(words)
-            idx = find(cellfun(@(x) ~isempty(x), strfind(dictionary, words{k})) == 1);
-            occ_mat(i, idx) = occ_mat(i, idx) + 1;
+    episodes_per_partition = floor(length(test_songs(i).episodes) / partition_num);
+    test_songs(i).occ_mat = zeros(partition_num, length(test_songs(i).dictionary));
+    rand_idx = randperm(length(test_songs(i).episodes));
+    for j = 1:partition_num %length(test_songs(i).episodes)
+        partition_rand_idx = rand_idx((j - 1) * episodes_per_partition + 1:j * episodes_per_partition);
+        for k = partition_rand_idx
+            words = test_songs(i).episodes(k).content_hts;
+            for m = 1:length(words)
+                idx = find(cellfun(@(x) ~isempty(x), strfind(test_songs(i).dictionary, words{m})) == 1);
+                test_songs(i).occ_mat(j, idx) = test_songs(i).occ_mat(j, idx) + 1;
+            end
         end
     end
 end
+time_elapsed = toc(start_time);
+fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 
 %% Calculate Shannon's entropy
-fprintf(1, 'Calculating Shannons entropy.\n');
-partition_num = 10;
-occ_mat_sum = sum(occ_mat, 1);
-p_w = occ_mat ./ repmat(occ_mat_sum, size(occ_mat, 1), 1);
-S_w_tmp = sum(p_w .* log(p_w + eps), 1);
-S_w = (-1 / log(partition_num)) * S_w_tmp;
-S_ran = 1 - ((partition_num - 1) ./ (2 * occ_mat_sum * log(partition_num)));
-E_w = (1 - S_w) ./ (1 - S_ran);
+start_time = tic;
+fprintf(1, 'Calculating Shannons entropy.');
+for i = 1:length(test_songs)
+    occ_mat_sum = sum(test_songs(i).occ_mat, 1);
+    p_w = test_songs(i).occ_mat ./ repmat(occ_mat_sum, size(test_songs(i).occ_mat, 1), 1);
+    S_w_tmp = sum(p_w .* log(p_w + eps), 1);
+    S_w = (-1 / log(partition_num)) * S_w_tmp;
+    S_ran = 1 - ((partition_num - 1) ./ (2 * occ_mat_sum * log(partition_num)));
+    test_songs(i).E_w = (1 - S_w) ./ (1 - S_ran);
+end
+time_elapsed = toc(start_time);
+fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
