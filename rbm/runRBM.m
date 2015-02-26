@@ -20,6 +20,8 @@ function [params, rbmModel, runtimeParams] = runRBM(data, params, logfile)
             [errsum, reconerr, timeTaken] = runBinaryRBMOneEpoch(data, params, rbmModel, runtimeParams);
         elseif strcmp(params.vistype, 'poisson')
             [errsum, reconerr, timeTaken] = runPoissonRBMOneEpoch(data, params, rbmModel, runtimeParams);
+        elseif strcmp(params.type, 'gaussian')
+            [errsum, reconerr, timeTaken] = runGaussianRBMOneEpoch(data, params, rbmModel, runtimeParams);
         end
 
         % params.epsilon = max(params.minepsilon, params.epsilon * params.annealepsilon); 
