@@ -61,7 +61,7 @@ fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 % Create an occurrence matrix for each test song
 clear start_time time_elapsed;
 start_time = tic;
-partition_num = 100;
+partition_num = 50;
 fprintf(1, 'Creating the occurrence matrix using the unique dictionary.');
 for i = 1:length(test_songs)
     episodes_per_partition = floor(length(test_songs(i).episodes) / partition_num);
@@ -77,6 +77,13 @@ for i = 1:length(test_songs)
             end
         end
     end
+    
+    % Remove words that occur less than average per word occurrence.
+    average_word_occ = floor(sum(test_songs(i).occ_mat, 1) / size(test_songs(i).occ_mat, 2));
+    average_word_occ = average_word_occ / 2;
+    remove_idx = sum(test_songs(i).occ_mat, 1) <= average_word_occ;
+    test_songs(i).dictionary(remove_idx) = [];
+    test_songs(i).occ_mat(:, remove_idx) = [];
 end
 time_elapsed = toc(start_time);
 fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
@@ -95,4 +102,4 @@ end
 time_elapsed = toc(start_time);
 fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 
-save('scratch\test_songs_partition_100.mat', 'test_songs');
+save(['scratch\test_songs_partition_' num2str(partition_num) '.mat'], 'test_songs');
