@@ -9,12 +9,6 @@ options.preproc.pca.eps = 0.01;
 options.preproc.pca.retained = 0.9;
 
 %%%%% FEATURE LEARNING OPTIONS %%%%%
-<<<<<<< HEAD
-options.fl.rbm.vistype = 'poisson'; % binary, gaussian, poisson
-options.fl.rbm.hidtype = 'binary'; % binary, linear
-options.fl.rbm.maxEpoch = 300;
-options.fl.rbm.hidden_layer = [1000, 500, 150, 125];
-=======
 options.fl.rbm.type = 'gaussian'; % binary, gaussian, poisson
 if strcmp(options.fl.rbm.type, 'binary')
     options.fl.rbm.epsilon = 0.01;
@@ -31,5 +25,4 @@ else
 end
 options.fl.rbm.maxEpoch = 300;
 options.fl.rbm.hidden_layer = 256;
->>>>>>> origin/master
 options.fl.rbm.batch_size = 100;

@@ -58,7 +58,6 @@ end
 
 time_elapsed = toc(start_time);
 fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
->>>>>>> origin/master
 
 % Create an occurrence matrix for each test song
 clear start_time time_elapsed;
