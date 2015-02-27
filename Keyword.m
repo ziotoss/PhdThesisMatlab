@@ -55,7 +55,6 @@ for i = 1 : length(D)
     end
     test_songs(i).dictionary = unique(vocabs);
 end
-
 time_elapsed = toc(start_time);
 fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 
@@ -64,7 +63,6 @@ clear start_time time_elapsed;
 start_time = tic;
 partition_num = 100;
 fprintf(1, 'Creating the occurrence matrix using the unique dictionary.');
-partitions = 10;
 for i = 1:length(test_songs)
     episodes_per_partition = floor(length(test_songs(i).episodes) / partition_num);
     test_songs(i).occ_mat = zeros(partition_num, length(test_songs(i).dictionary));
