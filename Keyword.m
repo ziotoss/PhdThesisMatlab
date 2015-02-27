@@ -61,45 +61,41 @@ fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 % Create an occurrence matrix for each test song
 clear start_time time_elapsed;
 start_time = tic;
-partition_num = 50;
+partition_nums = [3 5 10 25 50 100];
+mean_divider = 2;
 fprintf(1, 'Creating the occurrence matrix using the unique dictionary.');
-for i = 1:length(test_songs)
-    episodes_per_partition = floor(length(test_songs(i).episodes) / partition_num);
-    test_songs(i).occ_mat = zeros(partition_num, length(test_songs(i).dictionary));
-    rand_idx = randperm(length(test_songs(i).episodes));
-    for j = 1:partition_num %length(test_songs(i).episodes)
-        partition_rand_idx = rand_idx((j - 1) * episodes_per_partition + 1:j * episodes_per_partition);
-        for k = partition_rand_idx
-            words = test_songs(i).episodes(k).content_hts;
-            for m = 1:length(words)
-                idx = find(cellfun(@(x) ~isempty(x), strfind(test_songs(i).dictionary, words{m})) == 1);
-                test_songs(i).occ_mat(j, idx) = test_songs(i).occ_mat(j, idx) + 1;
+for partition_num = partition_nums
+    for i = 1:length(test_songs)
+        episodes_per_partition = floor(length(test_songs(i).episodes) / partition_num);
+        test_songs(i).occ_mat = zeros(partition_num, length(test_songs(i).dictionary));
+        rand_idx = randperm(length(test_songs(i).episodes));
+        for j = 1:partition_num %length(test_songs(i).episodes)
+            partition_rand_idx = rand_idx((j - 1) * episodes_per_partition + 1:j * episodes_per_partition);
+            for k = partition_rand_idx
+                words = test_songs(i).episodes(k).content_hts;
+                for m = 1:length(words)
+                    idx = find(cellfun(@(x) ~isempty(x), strfind(test_songs(i).dictionary, words{m})) == 1);
+                    test_songs(i).occ_mat(j, idx) = test_songs(i).occ_mat(j, idx) + 1;
+                end
             end
         end
+
+        % Remove words that occur less than average per word occurrence.
+        average_word_occ = floor(sum(test_songs(i).occ_mat, 1) / size(test_songs(i).occ_mat, 2));
+        average_word_occ = floor(average_word_occ / mean_divider);
+        remove_idx = sum(test_songs(i).occ_mat, 1) <= average_word_occ;
+        test_songs(i).dictionary(remove_idx) = [];
+        test_songs(i).occ_mat(:, remove_idx) = [];
+
+        % Calculate Shannon's entropy
+        occ_mat_sum = sum(test_songs(i).occ_mat, 1);
+        p_w = test_songs(i).occ_mat ./ repmat(occ_mat_sum, size(test_songs(i).occ_mat, 1), 1);
+        S_w_tmp = sum(p_w .* log(p_w + eps), 1);
+        S_w = (-1 / log(partition_num)) * S_w_tmp;
+        S_ran = 1 - ((partition_num - 1) ./ (2 * occ_mat_sum * log(partition_num)));
+        test_songs(i).E_w = (1 - S_w) ./ (1 - S_ran);
     end
-    
-    % Remove words that occur less than average per word occurrence.
-    average_word_occ = floor(sum(test_songs(i).occ_mat, 1) / size(test_songs(i).occ_mat, 2));
-    average_word_occ = average_word_occ / 2;
-    remove_idx = sum(test_songs(i).occ_mat, 1) <= average_word_occ;
-    test_songs(i).dictionary(remove_idx) = [];
-    test_songs(i).occ_mat(:, remove_idx) = [];
+    save(['scratch\test_songs_partition_' num2str(partition_num) '.mat'], 'test_songs');
 end
 time_elapsed = toc(start_time);
 fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
-
-%% Calculate Shannon's entropy
-start_time = tic;
-fprintf(1, 'Calculating Shannons entropy.');
-for i = 1:length(test_songs)
-    occ_mat_sum = sum(test_songs(i).occ_mat, 1);
-    p_w = test_songs(i).occ_mat ./ repmat(occ_mat_sum, size(test_songs(i).occ_mat, 1), 1);
-    S_w_tmp = sum(p_w .* log(p_w + eps), 1);
-    S_w = (-1 / log(partition_num)) * S_w_tmp;
-    S_ran = 1 - ((partition_num - 1) ./ (2 * occ_mat_sum * log(partition_num)));
-    test_songs(i).E_w = (1 - S_w) ./ (1 - S_ran);
-end
-time_elapsed = toc(start_time);
-fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
-
-save(['scratch\test_songs_partition_' num2str(partition_num) '.mat'], 'test_songs');
