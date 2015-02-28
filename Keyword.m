@@ -90,9 +90,9 @@ for partition_num = partition_nums
         % Calculate Shannon's entropy
         occ_mat_sum = sum(test_songs(i).occ_mat, 1);
         p_w = test_songs(i).occ_mat ./ repmat(occ_mat_sum, size(test_songs(i).occ_mat, 1), 1);
-        S_w_tmp = sum(p_w .* log(p_w + eps), 1);
-        S_w = (-1 / log(partition_num)) * S_w_tmp;
-        S_ran = 1 - ((partition_num - 1) ./ (2 * occ_mat_sum * log(partition_num)));
+        S_w_tmp = sum(p_w .* log2(p_w + eps), 1);
+        S_w = (-1 / log2(partition_num)) * S_w_tmp;
+        S_ran = 1 - ((partition_num - 1) ./ (2 * occ_mat_sum * log2(partition_num)));
         test_songs(i).E_w = (1 - S_w) ./ (1 - S_ran);
     end
     save(['scratch\test_songs_partition_' num2str(partition_num) '.mat'], 'test_songs');
