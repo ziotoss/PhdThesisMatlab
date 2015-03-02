@@ -106,12 +106,14 @@ function extract_keyword_per_song(scratch, partition_nums, doc_length_limit, mea
             test_songs(i).occ_mat(:, remove_idx) = [];
 
             % Calculate Shannon's entropy
-            occ_mat_sum = sum(test_songs(i).occ_mat, 1);
-            p_w = test_songs(i).occ_mat ./ repmat(occ_mat_sum, size(test_songs(i).occ_mat, 1), 1);
+            n_w = sum(test_songs(i).occ_mat, 1);
+            Ni = sum(test_songs(i).occ_mat, 2);
+            fi_w = test_songs(i).occ_mat ./ repmat(Ni, 1, size(test_songs(i).occ_mat, 2));
+            fi_w_sum = sum(fi_w, 1);
+            p_w = fi_w ./ repmat(fi_w_sum, size(test_songs(i).occ_mat, 1), 1);
             S_w_tmp = sum(p_w .* log2(p_w + eps), 1);
             S_w = (-1 / log2(partition_num)) * S_w_tmp;
-            S_ran = 1 - ((partition_num - 1) ./ (2 * occ_mat_sum * log2(partition_num)));
-            test_songs(i).E_w = (1 - S_w) ./ (1 - S_ran);
+            test_songs(i).E_w = ((2*log2(partition_num)) / (partition_num - 1)) * n_w .* (1 - S_w);
         end
         save([scratch filesep 'test_songs_ln_partition_' num2str(partition_num) '.mat'], 'test_songs');
     end
