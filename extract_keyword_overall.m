@@ -8,12 +8,14 @@ function extract_keyword_overall(scratch, doc_length_limit, mean_divider)
 %       mean_divider - variable to divide minimum word limit.
 %                      (Default value is 1)
 
-    if nargin < 2
+    if nargin < 3
+        mean_divider = 2;
+    elseif nargin < 2
         doc_length_limit = 50;
         mean_divider = 2;
     end
 
-    hts_folder = '_hts';
+    hts_folder = '_hts_preprocessed';
     file_path = 'D:\Data\Keyword\TestSongs';
     
     D = dir(file_path);
@@ -42,30 +44,28 @@ function extract_keyword_overall(scratch, doc_length_limit, mean_divider)
             hts_file = [tmp{1} filesep tmp{2} filesep tmp{3} filesep tmp{4} hts_folder filesep tmp{5}];
 
             fid = fopen(hts_file);
-            C = textscan(fid, '%s%s%s', 'delimiter', ':');
-            fclose(fid);
+            if fid ~= -1
+                C = textscan(fid, '%s%s%s', 'delimiter', ':');
+                fclose(fid);
+                
+                hts_types = C{2};
+                hts_words = C{3};
 
-            % ToDo: Remove episodes that have less than word_limit words.
-            hts_types = C{2};
-            hts_words = C{3};
-            contentIdx = strcmp(hts_words, 'CONTENT');
-            contentIdx = find(contentIdx == 1);
-            hts_types = hts_types(contentIdx + 1:end);
-            hts_words = hts_words(contentIdx + 1:end);
-            neglect_idx = [];
-            neglect_idx = [neglect_idx; find(strcmp(hts_types, '%') == 1)];
-            neglect_idx = [neglect_idx; find(strcmp(hts_types, '*') == 1)];
-            neglect_idx = [neglect_idx; find(strcmp(hts_types, '1') == 1)];
-            neglect_idx = [neglect_idx; find(strcmp(hts_types, '@') == 1)];
-            neglect_idx = [neglect_idx; find(strcmp(hts_types, 'K') == 1)];
+                neglect_idx = [];
+                neglect_idx = [neglect_idx; find(strcmp(hts_types, '%') == 1)];
+                neglect_idx = [neglect_idx; find(strcmp(hts_types, '*') == 1)];
+                neglect_idx = [neglect_idx; find(strcmp(hts_types, '1') == 1)];
+                neglect_idx = [neglect_idx; find(strcmp(hts_types, '@') == 1)];
+                neglect_idx = [neglect_idx; find(strcmp(hts_types, 'A') == 1)];
 
-            hts_types(neglect_idx) = [];
-            hts_words(neglect_idx) = [];
-            if length(hts_words) >= doc_length_limit
-                test_songs(i).episodes(j).hts_file = hts_file;
-                test_songs(i).episodes(j).content_hts = hts_words;
-                test_songs(i).episodes(j).content_hts_type = hts_types;
-                vocabs = [vocabs; hts_words];
+                hts_types(neglect_idx) = [];
+                hts_words(neglect_idx) = [];
+                if length(hts_words) >= doc_length_limit
+                    test_songs(i).episodes(j).hts_file = hts_file;
+                    test_songs(i).episodes(j).content_hts = hts_words;
+                    test_songs(i).episodes(j).content_hts_type = hts_types;
+                    vocabs = [vocabs; hts_words];
+                end
             end
         end
         test_songs(i).dictionary = unique(vocabs);
@@ -74,7 +74,7 @@ function extract_keyword_overall(scratch, doc_length_limit, mean_divider)
     fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 
     partition_num = length(test_songs);
-    save([scratch filesep 'overall_test_songs_ln_partition_' num2str(partition_num) '.mat'], 'test_songs');
+    save([scratch filesep 'overall_test_songs_' num2str(partition_num) '.mat'], 'test_songs');
 
     % Create an overall dictionary
     clear start_time time_elapsed;
@@ -132,7 +132,7 @@ function extract_keyword_overall(scratch, doc_length_limit, mean_divider)
     results.dictionary = dictionary;
     results.occ_mat = occ_mat;
     results.E_w = E_w;
-    save([scratch filesep 'overall_test_songs_ln_result.mat'], 'results');
+    save([scratch filesep 'overall_test_songs_' num2str(partition_num) '_result.mat'], 'results');
     time_elapsed = toc(start_time);
     fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 end

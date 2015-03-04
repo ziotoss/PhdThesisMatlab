@@ -217,6 +217,7 @@ pip-log.txt
 
 ######MATLAB######
 scratch/
+figure/
 *.asv
 *.mat
 *.fig
