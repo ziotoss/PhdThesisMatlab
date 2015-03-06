@@ -70,6 +70,18 @@ function extract_keyword_overall(scratch, doc_length_limit, mean_divider)
         end
         test_songs(i).dictionary = unique(vocabs);
     end
+    
+    % Remove empty episodes
+    for i = 1 : length(test_songs)
+        removeIdx = zeros(1, length(test_songs(i).episodes));
+        for j = 1 : length(test_songs(i).episodes)
+            if isempty(test_songs(i).episodes(j).hts_file)
+                removeIdx(j) = 1;
+            end
+        end
+        test_songs(i).episodes(boolean(removeIdx)) = [];
+        
+    end
     time_elapsed = toc(start_time);
     fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 
