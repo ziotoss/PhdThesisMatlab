@@ -15,78 +15,85 @@ function extract_keyword_overall(scratch, doc_length_limit, mean_divider)
         mean_divider = 2;
     end
 
-    hts_folder = '_hts_preprocessed';
-    file_path = 'D:\Data\Keyword\TestSongs';
-    
-    D = dir(file_path);
-    D(1:2) = [];
-    test_songs = struct;
+    if ~exists([scratch filesep 'overall_test_songs_20.mat', 'file');
+        hts_folder = '_hts_preprocessed';
+        file_path = 'D:\Data\Keyword\TestSongs';
 
-    start_time = tic;
-    fprintf(1, 'Gathering song information.');
-    for i = 1 : length(D)
-        vocabs = [];
-        fid = fopen([file_path filesep D(i).name]);
-        C = textscan(fid, '%s', 'delimiter', '');
-        fclose(fid);
+        D = dir(file_path);
+        D(1:2) = [];
+        test_songs = struct;
 
-        song_info = strsplit(D(i).name, '_');
-        song_artist = song_info{1};
-        song_title = song_info{2};
-        song_title = song_title(1:end - 4);
-        test_songs(i).song_artist = song_artist;
-        test_songs(i).song_title = song_title;
-        test_songs(i).episodes = struct;
+        start_time = tic;
+        fprintf(1, 'Gathering song information.');
+        for i = 1 : length(D)
+            vocabs = [];
+            fid = fopen([file_path filesep D(i).name]);
+            C = textscan(fid, '%s', 'delimiter', '');
+            fclose(fid);
 
-        song_files = C{1};
-        for j = 1 : length(song_files)
-            tmp = strsplit(song_files{j}, '\\');
-            hts_file = [tmp{1} filesep tmp{2} filesep tmp{3} filesep tmp{4} hts_folder filesep tmp{5}];
+            song_info = strsplit(D(i).name, '_');
+            song_artist = song_info{1};
+            song_title = song_info{2};
+            song_title = song_title(1:end - 4);
+            test_songs(i).song_artist = song_artist;
+            test_songs(i).song_title = song_title;
+            test_songs(i).episodes = struct;
 
-            fid = fopen(hts_file);
-            if fid ~= -1
-                C = textscan(fid, '%s%s%s', 'delimiter', ':');
-                fclose(fid);
-                
-                hts_types = C{2};
-                hts_words = C{3};
+            song_files = C{1};
+            for j = 1 : length(song_files)
+                tmp = strsplit(song_files{j}, '\\');
+                hts_file = [tmp{1} filesep tmp{2} filesep tmp{3} filesep tmp{4} hts_folder filesep tmp{5}];
 
-                neglect_idx = [];
-                neglect_idx = [neglect_idx; find(strcmp(hts_types, '%') == 1)];
-                neglect_idx = [neglect_idx; find(strcmp(hts_types, '*') == 1)];
-                neglect_idx = [neglect_idx; find(strcmp(hts_types, '1') == 1)];
-                neglect_idx = [neglect_idx; find(strcmp(hts_types, '@') == 1)];
-                neglect_idx = [neglect_idx; find(strcmp(hts_types, 'A') == 1)];
+                fid = fopen(hts_file);
+                if fid ~= -1
+                    C = textscan(fid, '%s%s%s', 'delimiter', ':');
+                    fclose(fid);
 
-                hts_types(neglect_idx) = [];
-                hts_words(neglect_idx) = [];
-                if length(hts_words) >= doc_length_limit
-                    test_songs(i).episodes(j).hts_file = hts_file;
-                    test_songs(i).episodes(j).content_hts = hts_words;
-                    test_songs(i).episodes(j).content_hts_type = hts_types;
-                    vocabs = [vocabs; hts_words];
+                    hts_types = C{2};
+                    hts_words = C{3};
+
+                    neglect_idx = [];
+                    neglect_idx = [neglect_idx; find(strcmp(hts_types, '%') == 1)];
+                    neglect_idx = [neglect_idx; find(strcmp(hts_types, '*') == 1)];
+                    neglect_idx = [neglect_idx; find(strcmp(hts_types, '1') == 1)];
+                    neglect_idx = [neglect_idx; find(strcmp(hts_types, '@') == 1)];
+                    neglect_idx = [neglect_idx; find(strcmp(hts_types, 'A') == 1)];
+
+                    hts_types(neglect_idx) = [];
+                    hts_words(neglect_idx) = [];
+                    if length(hts_words) >= doc_length_limit
+                        test_songs(i).episodes(j).hts_file = hts_file;
+                        test_songs(i).episodes(j).content_hts = hts_words;
+                        test_songs(i).episodes(j).content_hts_type = hts_types;
+                        vocabs = [vocabs; hts_words];
+                    end
                 end
             end
+            test_songs(i).dictionary = unique(vocabs);
         end
-        test_songs(i).dictionary = unique(vocabs);
-    end
-    
-    % Remove empty episodes
-    for i = 1 : length(test_songs)
-        removeIdx = zeros(1, length(test_songs(i).episodes));
-        for j = 1 : length(test_songs(i).episodes)
-            if isempty(test_songs(i).episodes(j).hts_file)
-                removeIdx(j) = 1;
-            end
-        end
-        test_songs(i).episodes(boolean(removeIdx)) = [];
-        
-    end
-    time_elapsed = toc(start_time);
-    fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 
-    partition_num = length(test_songs);
-    save([scratch filesep 'overall_test_songs_' num2str(partition_num) '.mat'], 'test_songs');
+        % Remove empty episodes
+        for i = 1 : length(test_songs)
+            removeIdx = zeros(1, length(test_songs(i).episodes));
+            for j = 1 : length(test_songs(i).episodes)
+                if isempty(test_songs(i).episodes(j).hts_file)
+                    removeIdx(j) = 1;
+                end
+            end
+            test_songs(i).episodes(boolean(removeIdx)) = [];
+
+        end
+        time_elapsed = toc(start_time);
+        fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
+        
+        partition_num = length(test_songs);
+        save([scratch filesep 'overall_test_songs_' num2str(partition_num) '.mat'], 'test_songs');
+    else
+        fprintf(1, 'Loading test_songs file.\n');
+        load([scratch filesep 'overall_test_songs_20.mat']);
+        partition_num = length(test_songs);
+    end
+
 
     % Create an overall dictionary
     clear start_time time_elapsed;
