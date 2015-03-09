@@ -1,4 +1,4 @@
-function extract_keyword_overall(scratch, doc_length_limit, filter_words)
+function extract_keyword_overall(scratch, doc_length_limit, filter_words, method)
 % function extract_keyword_per_song
 %
 %   Input:
@@ -8,9 +8,14 @@ function extract_keyword_overall(scratch, doc_length_limit, filter_words)
 %       mean_divider - variable to divide minimum word limit.
 %                      (Default value is 1)
 
-    if nargin < 3
+    if nargin < 4
+        method = 'original';
+    elseif nargin < 3
         filter_words = false;
+        method = 'original';
     elseif nargin < 2
+        method = 'original';
+        filter_words = false;
         doc_length_limit = 20;
     end
 
@@ -99,10 +104,10 @@ function extract_keyword_overall(scratch, doc_length_limit, filter_words)
     start_time = tic;
     fprintf(1, 'Creating an overall unique dictionary.');
     dictionary = [];
-    overall_episodes = 0;
+    episode_count = 0;
     for i = 1:partition_num
         dictionary = [dictionary;test_songs(i).dictionary];
-        overall_episodes = overall_episodes + length(test_songs(i).episodes);
+        episode_count = episode_count + length(test_songs(i).episodes);
     end
     dictionary = unique(dictionary);
     time_elapsed = toc(start_time);
@@ -126,7 +131,7 @@ function extract_keyword_overall(scratch, doc_length_limit, filter_words)
     if filter_words
         % Remove words that occur less than average per word occurrence.
         total_words = sum(sum(occ_mat));
-        average_word_occ = floor(total_words / overall_episodes);
+        average_word_occ = floor(total_words / episode_count);
         average_word_occ = floor(average_word_occ / 2);
         remove_idx = sum(occ_mat, 1) <= average_word_occ;
         dictionary(remove_idx) = [];
@@ -140,29 +145,34 @@ function extract_keyword_overall(scratch, doc_length_limit, filter_words)
     start_time = tic;
     fprintf(1, 'Calculating Shannons Entropy.');
     n_w = sum(occ_mat, 1);
-    idf = zeros(1, length(dictionary));
-    total_doc = 0;
-    for i = 1:length(dictionary)
-        count = 0;
-        for j = 1:length(test_songs)
-            for k = 1:length(test_songs(j).episodes)
-                if ~isempty(find(strcmp(test_songs(j).episodes(k).content_hts, dictionary(i)) == 1, 1))
-                    count = count + 1;
-                end
-                total_doc = total_doc + 1;
-            end
-        end
-        idf(i) = count;
-    end
-    idf = log2(total_doc / idf);
     Ni = sum(occ_mat, 2);
     fi_w = occ_mat ./ repmat(Ni, 1, size(occ_mat, 2));
     fi_w_sum = sum(fi_w, 1);
     p_w = fi_w ./ repmat(fi_w_sum, size(occ_mat, 1), 1);
     S_w_tmp = sum(p_w .* log2(p_w + eps), 1);
     S_w = (-1 / log2(partition_num)) * S_w_tmp;
-    S_ran = 1 - ((partition_num - 1) ./ (2 * log2(n_w) / idf * log2(partition_num)));
-    E_w = (1 - S_w) ./ (1 - S_ran);
+    
+    % Methods to normalize E_norm(w). (tfidf, original, etc);
+    if strcmp(method, 'tfidf')
+        idf = zeros(1, length(dictionary));
+        for i = 1:length(dictionary)
+            count = 0;
+            for j = 1:length(test_songs)
+                for k = 1:length(test_songs(j).episodes)
+                    if ~isempty(find(strcmp(test_songs(j).episodes(k).content_hts, dictionary(i)) == 1, 1))
+                        count = count + 1;
+                    end
+                end
+            end
+            idf(i) = count;
+        end
+        idf = log2(episode_count ./ idf);
+        S_ran = n_w .* idf;
+        E_w = (1 - S_w) .* S_ran;
+    elseif strcmp(method, 'original')
+        S_ran = 1 - ((partition_num - 1) ./ (2 * n_w * log2(partition_num)));
+        E_w = (1 - S_w) ./ (1 - S_ran);
+    end
     
     results.dictionary = dictionary;
     results.occ_mat = occ_mat;
@@ -174,7 +184,3 @@ function extract_keyword_overall(scratch, doc_length_limit, filter_words)
     time_elapsed = toc(start_time);
     fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 end
-    
-    
-    
-    
