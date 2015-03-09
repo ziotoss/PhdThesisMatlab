@@ -1,4 +1,4 @@
-function extract_keyword_overall(scratch, doc_length_limit, mean_divider)
+function extract_keyword_overall(scratch, doc_length_limit, filter_words)
 % function extract_keyword_per_song
 %
 %   Input:
@@ -9,13 +9,12 @@ function extract_keyword_overall(scratch, doc_length_limit, mean_divider)
 %                      (Default value is 1)
 
     if nargin < 3
-        mean_divider = 2;
+        filter_words = false;
     elseif nargin < 2
         doc_length_limit = 20;
-        mean_divider = 2;
     end
 
-    if ~exists([scratch filesep 'overall_test_songs_20.mat', 'file');
+    if ~exist([scratch filesep 'overall_test_songs.mat'], 'file');
         hts_folder = '_hts_preprocessed';
         file_path = 'D:\Data\Keyword\TestSongs';
 
@@ -87,10 +86,10 @@ function extract_keyword_overall(scratch, doc_length_limit, mean_divider)
         fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
         
         partition_num = length(test_songs);
-        save([scratch filesep 'overall_test_songs_' num2str(partition_num) '.mat'], 'test_songs');
+        save([scratch filesep 'overall_test_songs.mat'], 'test_songs');
     else
         fprintf(1, 'Loading test_songs file.\n');
-        load([scratch filesep 'overall_test_songs_20.mat']);
+        load([scratch filesep 'overall_test_songs.mat']);
         partition_num = length(test_songs);
     end
 
@@ -124,34 +123,54 @@ function extract_keyword_overall(scratch, doc_length_limit, mean_divider)
         end
     end
 
-    % Remove words that occur less than average per word occurrence.
-    total_words = sum(sum(occ_mat));
-    average_word_occ = floor(total_words / overall_episodes);
-    average_word_occ = floor(average_word_occ / mean_divider);
-    remove_idx = sum(occ_mat, 1) <= average_word_occ;
-    dictionary(remove_idx) = [];
-    occ_mat(:, remove_idx) = [];
-    time_elapsed = toc(start_time);
-    fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
+    if filter_words
+        % Remove words that occur less than average per word occurrence.
+        total_words = sum(sum(occ_mat));
+        average_word_occ = floor(total_words / overall_episodes);
+        average_word_occ = floor(average_word_occ / 2);
+        remove_idx = sum(occ_mat, 1) <= average_word_occ;
+        dictionary(remove_idx) = [];
+        occ_mat(:, remove_idx) = [];
+        time_elapsed = toc(start_time);
+        fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
+    end
     
     % Calculate Shannon's entropy
     clear start_time time_elapsed;
     start_time = tic;
     fprintf(1, 'Calculating Shannons Entropy.');
     n_w = sum(occ_mat, 1);
+    idf = zeros(1, length(dictionary));
+    total_doc = 0;
+    for i = 1:length(dictionary)
+        count = 0;
+        for j = 1:length(test_songs)
+            for k = 1:length(test_songs(j).episodes)
+                if ~isempty(find(strcmp(test_songs(j).episodes(k).content_hts, dictionary(i)) == 1, 1))
+                    count = count + 1;
+                end
+                total_doc = total_doc + 1;
+            end
+        end
+        idf(i) = count;
+    end
+    idf = log2(total_doc / idf);
     Ni = sum(occ_mat, 2);
     fi_w = occ_mat ./ repmat(Ni, 1, size(occ_mat, 2));
     fi_w_sum = sum(fi_w, 1);
     p_w = fi_w ./ repmat(fi_w_sum, size(occ_mat, 1), 1);
     S_w_tmp = sum(p_w .* log2(p_w + eps), 1);
     S_w = (-1 / log2(partition_num)) * S_w_tmp;
-    S_ran = 1 - ((partition_num - 1) ./ (2 * n_w * log2(partition_num)));
+    S_ran = 1 - ((partition_num - 1) ./ (2 * log2(n_w) / idf * log2(partition_num)));
     E_w = (1 - S_w) ./ (1 - S_ran);
     
     results.dictionary = dictionary;
     results.occ_mat = occ_mat;
+    results.idf = idf;
+    results.p_w = p_w;
+    results.S_w = S_w;
     results.E_w = E_w;
-    save([scratch filesep 'overall_test_songs_' num2str(partition_num) '_result.mat'], 'results');
+    save([scratch filesep 'overall_test_songs_result.mat'], 'results');
     time_elapsed = toc(start_time);
     fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 end

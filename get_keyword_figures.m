@@ -1,8 +1,8 @@
 function get_keyword_figures(keyword_ftr_file, top_n)
 
     load(['scratch' filesep keyword_ftr_file '.mat']);
-    song_ftr = result.features;
-    keywords = result.keywords;
+    song_ftr = ftr_result.features;
+    keywords = ftr_result.keywords;
     
     fig_data = struct;
     

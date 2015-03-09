@@ -1,6 +1,6 @@
-function extract_keyword_feature(keyword_reslt_file, keyword_test_songs_file, num_keywords)
+function extract_keyword_feature(keyword_result_file, keyword_test_songs_file, num_keywords)
 
-    result = load(['scratch' filesep keyword_reslt_file '.mat']);
+    result = load(['scratch' filesep keyword_result_file '.mat']);
     songs = load(['scratch' filesep keyword_test_songs_file '.mat']);
     
     [sorted_e_w, sorted_idx] = sort(result.results.E_w, 'descend');
@@ -30,11 +30,11 @@ function extract_keyword_feature(keyword_reslt_file, keyword_test_songs_file, nu
         features(i).song_title = songs.test_songs(i).song_title;
         features(i).song_ftr = feature_vector;
     end
-    result.features = features;
-    result.sorted_e_w = sorted_e_w;
-    result.keywords = keywords;
+    ftr_result.features = features;
+    ftr_result.sorted_e_w = sorted_e_w;
+    ftr_result.keywords = keywords;
     
     time_elapsed = toc(start_time);
-    save('scratch\overall_test_songs_20_ftr.mat', 'result');
+    save('scratch\overall_test_songs_ftr.mat', 'ftr_result');
     fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 end
