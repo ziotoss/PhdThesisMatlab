@@ -11,7 +11,7 @@ function extract_keyword_overall(scratch, doc_length_limit, mean_divider)
     if nargin < 3
         mean_divider = 2;
     elseif nargin < 2
-        doc_length_limit = 50;
+        doc_length_limit = 20;
         mean_divider = 2;
     end
 
