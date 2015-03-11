@@ -1,17 +1,15 @@
-function extract_keyword_feature(keyword_result_file, keyword_test_songs_file, num_keywords)
+function ftr_result = extract_keyword_feature(scratch, processed_songs, results, options)
 
-    result = load(['scratch' filesep keyword_result_file '.mat']);
-    songs = load(['scratch' filesep keyword_test_songs_file '.mat']);
+    [sorted_e_w, sorted_idx] = sort(results.E_w, 'descend');
+    keywords = processed_songs.dictionary(sorted_idx);
+    keywords = keywords(1:options.keyword.num_keywords);
+    test_songs = processed_songs.test_songs;
     
-    [sorted_e_w, sorted_idx] = sort(result.results.E_w, 'descend');
-    keywords = result.results.dictionary(sorted_idx);
-    keywords = keywords(1:num_keywords);
-
     start_time = tic;
     fprintf(1, 'Accumulating keyword occurrence for each song.');
     features = struct;
-    for i = 1 : length(songs.test_songs)
-        episodes = songs.test_songs(i).episodes;
+    for i = 1 : length(test_songs)
+        episodes = test_songs(i).episodes;
         feature_vector = zeros(1, length(keywords));
         
         hts = [];
@@ -26,8 +24,8 @@ function extract_keyword_feature(keyword_result_file, keyword_test_songs_file, n
             end
         end
         
-        features(i).song_artist = songs.test_songs(i).song_artist;
-        features(i).song_title = songs.test_songs(i).song_title;
+        features(i).song_artist = test_songs(i).song_artist;
+        features(i).song_title = test_songs(i).song_title;
         features(i).song_ftr = feature_vector;
     end
     ftr_result.features = features;
@@ -35,6 +33,10 @@ function extract_keyword_feature(keyword_result_file, keyword_test_songs_file, n
     ftr_result.keywords = keywords;
     
     time_elapsed = toc(start_time);
-    save('scratch\overall_test_songs_ftr.mat', 'ftr_result');
+    if strcmp(options.keyword.method, 'tfidf')
+        save([scratch filesep 'test_songs_' options.keyword.method '_' options.keyword.tfidf.method '_ftr.mat'], 'ftr_result');
+    else
+        save([scratch filesep 'test_songs_' options.keyword.method '_ftr.mat'], 'ftr_result');
+    end
     fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 end

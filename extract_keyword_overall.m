@@ -1,4 +1,4 @@
-function extract_keyword_overall(scratch, doc_length_limit, filter_words, method)
+function results = extract_keyword_overall(scratch, processed_songs, options)
 % function extract_keyword_per_song
 %
 %   Input:
@@ -8,152 +8,93 @@ function extract_keyword_overall(scratch, doc_length_limit, filter_words, method
 %       mean_divider - variable to divide minimum word limit.
 %                      (Default value is 1)
 
-    if nargin < 4
-        method = 'original';
-    elseif nargin < 3
-        filter_words = false;
-        method = 'original';
-    elseif nargin < 2
-        method = 'original';
-        filter_words = false;
-        doc_length_limit = 20;
+    test_songs = processed_songs.test_songs;
+    partition_num = processed_songs.partition_num;
+    occ_mat = processed_songs.occ_mat;
+    dictionary = processed_songs.dictionary;
+    episode_count = processed_songs.episode_count;
+    
+    clear start_time time_elapsed;
+    start_time = tic;
+    if strcmp(options.keyword.method, 'tfidf')
+        fprintf(1, ['Estimating keyword using ' options.keyword.method '(' options.keyword.tfidf.method ') method.\n']);
+    else
+        fprintf(1, ['Estimating keyword using ' options.keyword.method ' method.\n']);
     end
-
-    if ~exist([scratch filesep 'overall_test_songs.mat'], 'file');
-        hts_folder = '_hts_preprocessed';
-        file_path = 'D:\Data\Keyword\TestSongs';
-
-        D = dir(file_path);
-        D(1:2) = [];
-        test_songs = struct;
-
-        start_time = tic;
-        fprintf(1, 'Gathering song information.');
-        for i = 1 : length(D)
-            vocabs = [];
-            fid = fopen([file_path filesep D(i).name]);
-            C = textscan(fid, '%s', 'delimiter', '');
-            fclose(fid);
-
-            song_info = strsplit(D(i).name, '_');
-            song_artist = song_info{1};
-            song_title = song_info{2};
-            song_title = song_title(1:end - 4);
-            test_songs(i).song_artist = song_artist;
-            test_songs(i).song_title = song_title;
-            test_songs(i).episodes = struct;
-
-            song_files = C{1};
-            for j = 1 : length(song_files)
-                tmp = strsplit(song_files{j}, '\\');
-                hts_file = [tmp{1} filesep tmp{2} filesep tmp{3} filesep tmp{4} hts_folder filesep tmp{5}];
-
-                fid = fopen(hts_file);
-                if fid ~= -1
-                    C = textscan(fid, '%s%s%s', 'delimiter', ':');
-                    fclose(fid);
-
-                    hts_types = C{2};
-                    hts_words = C{3};
-
-                    neglect_idx = [];
-                    neglect_idx = [neglect_idx; find(strcmp(hts_types, '%') == 1)];
-                    neglect_idx = [neglect_idx; find(strcmp(hts_types, '*') == 1)];
-                    neglect_idx = [neglect_idx; find(strcmp(hts_types, '1') == 1)];
-                    neglect_idx = [neglect_idx; find(strcmp(hts_types, '@') == 1)];
-                    neglect_idx = [neglect_idx; find(strcmp(hts_types, 'A') == 1)];
-
-                    hts_types(neglect_idx) = [];
-                    hts_words(neglect_idx) = [];
-                    if length(hts_words) >= doc_length_limit
-                        test_songs(i).episodes(j).hts_file = hts_file;
-                        test_songs(i).episodes(j).content_hts = hts_words;
-                        test_songs(i).episodes(j).content_hts_type = hts_types;
-                        vocabs = [vocabs; hts_words];
+        
+    % Methods to normalize E_norm(w). (tfidf, original, etc);
+    if strcmp(options.keyword.method, 'tfidf')
+        if strcmp(options.keyword.tfidf.method, 'full')
+            tf = sum(occ_mat, 1);
+            idf = zeros(1, length(dictionary));
+            for i = 1:length(dictionary)
+                count = 0;
+                for j = 1:length(test_songs)
+                    for k = 1:length(test_songs(j).episodes)
+                        if ~isempty(find(strcmp(test_songs(j).episodes(k).content_hts, dictionary(i)) == 1, 1))
+                            count = count + 1;
+                        end
                     end
                 end
+                idf(i) = count;
             end
-            test_songs(i).dictionary = unique(vocabs);
+            idf = log2(episode_count ./ idf);
+            E_w = tf .* idf;
+            results.tf = tf;
+            results.idf = idf;
+            results.E_w = E_w;
+        elseif strcmp(options.keyword.tfidf.method, 'cluster')
+            
+        elseif strcmp(options.keyword.tfidf.method, 'document')
+             tf = zeros(episode_count, length(dictionary));
+             idf = zeros(1, length(dictionary));
+             episodes = [];
+             for i = 1:length(test_songs)
+                 episodes = [episodes, test_songs(i).episodes];
+             end
+             
+             for i = 1:length(episodes)
+                 for j = 1:length(dictionary)
+                     if ~isempty(find(strcmp(episodes(i).content_hts, dictionary{j}) == 1, 1))
+                         tf(i, j) = tf(i, j) + length(find(strcmp(episodes(i).content_hts, dictionary{j}) == 1));
+                         idf(j) = idf(j) + 1;
+                     end
+                 end
+             end
+             
+             idf = log2(episode_count ./ idf);
+             tfidf = tf .* repmat(idf, size(tf, 1), 1);
+             results.tf = tf;
+             results.idf = idf;
+             results.E_w = var(tfidf, [], 1);
+        else
+            fprintf(1, 'Invalid tf-idf method. Check options.keyword.tfidf.method.\n');
+            return;
         end
 
-        % Remove empty episodes
-        for i = 1 : length(test_songs)
-            removeIdx = zeros(1, length(test_songs(i).episodes));
-            for j = 1 : length(test_songs(i).episodes)
-                if isempty(test_songs(i).episodes(j).hts_file)
-                    removeIdx(j) = 1;
-                end
-            end
-            test_songs(i).episodes(boolean(removeIdx)) = [];
+    elseif strcmp(options.keyword.method, 'shannon')
+        n_w = sum(occ_mat, 1);
+        Ni = sum(occ_mat, 2);
+        fi_w = occ_mat ./ repmat(Ni, 1, size(occ_mat, 2));
+        fi_w_sum = sum(fi_w, 1);
+        p_w = fi_w ./ repmat(fi_w_sum, size(occ_mat, 1), 1);
+        S_w_tmp = sum(p_w .* log2(p_w + eps), 1);
+        S_w = (-1 / log2(partition_num)) * S_w_tmp;
+        S_ran = 1 - ((partition_num - 1) ./ (2 * n_w * log2(partition_num)));
+        E_w = (1 - S_w) ./ (1 - S_ran);
+        results.p_w = p_w;
+        results.S_w = S_w;
+        results.E_w = E_w;
 
-        end
-        time_elapsed = toc(start_time);
-        fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
-        
-        partition_num = length(test_songs);
-        save([scratch filesep 'overall_test_songs.mat'], 'test_songs');
-    else
-        fprintf(1, 'Loading test_songs file.\n');
-        load([scratch filesep 'overall_test_songs.mat']);
-        partition_num = length(test_songs);
-    end
+    elseif strcmp(options.keyword.method, 'hybrid')
+        n_w = sum(occ_mat, 1);
+        Ni = sum(occ_mat, 2);
+        fi_w = occ_mat ./ repmat(Ni, 1, size(occ_mat, 2));
+        fi_w_sum = sum(fi_w, 1);
+        p_w = fi_w ./ repmat(fi_w_sum, size(occ_mat, 1), 1);
+        S_w_tmp = sum(p_w .* log2(p_w + eps), 1);
+        S_w = (-1 / log2(partition_num)) * S_w_tmp;
 
-
-    % Create an overall dictionary
-    clear start_time time_elapsed;
-    start_time = tic;
-    fprintf(1, 'Creating an overall unique dictionary.');
-    dictionary = [];
-    episode_count = 0;
-    for i = 1:partition_num
-        dictionary = [dictionary;test_songs(i).dictionary];
-        episode_count = episode_count + length(test_songs(i).episodes);
-    end
-    dictionary = unique(dictionary);
-    time_elapsed = toc(start_time);
-    fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
-    
-    % Create an overall occurrence matrix
-    clear start_time time_elapsed;
-    start_time = tic;
-    occ_mat = zeros(partition_num, length(dictionary));
-    fprintf(1, 'Creating the occurrence matrix using the unique dictionary.');
-    for i = 1:partition_num
-        for j = 1:length(test_songs(i).episodes)
-            words = test_songs(i).episodes(j).content_hts;
-            for k = 1:length(words)
-                idx = find(strcmp(dictionary, words{k}) == 1);
-                occ_mat(i, idx) = occ_mat(i, idx) + 1;
-            end
-        end
-    end
-
-    if filter_words
-        % Remove words that occur less than average per word occurrence.
-        total_words = sum(sum(occ_mat));
-        average_word_occ = floor(total_words / episode_count);
-        average_word_occ = floor(average_word_occ / 2);
-        remove_idx = sum(occ_mat, 1) <= average_word_occ;
-        dictionary(remove_idx) = [];
-        occ_mat(:, remove_idx) = [];
-        time_elapsed = toc(start_time);
-        fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
-    end
-    
-    % Calculate Shannon's entropy
-    clear start_time time_elapsed;
-    start_time = tic;
-    fprintf(1, 'Calculating Shannons Entropy.');
-    n_w = sum(occ_mat, 1);
-    Ni = sum(occ_mat, 2);
-    fi_w = occ_mat ./ repmat(Ni, 1, size(occ_mat, 2));
-    fi_w_sum = sum(fi_w, 1);
-    p_w = fi_w ./ repmat(fi_w_sum, size(occ_mat, 1), 1);
-    S_w_tmp = sum(p_w .* log2(p_w + eps), 1);
-    S_w = (-1 / log2(partition_num)) * S_w_tmp;
-    
-    % Methods to normalize E_norm(w). (tfidf, original, etc);
-    if strcmp(method, 'tfidf')
         idf = zeros(1, length(dictionary));
         for i = 1:length(dictionary)
             count = 0;
@@ -169,18 +110,27 @@ function extract_keyword_overall(scratch, doc_length_limit, filter_words, method
         idf = log2(episode_count ./ idf);
         S_ran = n_w .* idf;
         E_w = (1 - S_w) .* S_ran;
-    elseif strcmp(method, 'original')
-        S_ran = 1 - ((partition_num - 1) ./ (2 * n_w * log2(partition_num)));
-        E_w = (1 - S_w) ./ (1 - S_ran);
+        results.idf = idf;
+        results.p_w = p_w;
+        results.S_w = S_w;
+        results.E_w = E_w;
+    else
+        fprintf(1, 'Irregular detection method. Check options.keyword.method.\n');
+        return;
     end
     
     results.dictionary = dictionary;
     results.occ_mat = occ_mat;
-    results.idf = idf;
-    results.p_w = p_w;
-    results.S_w = S_w;
-    results.E_w = E_w;
-    save([scratch filesep 'overall_test_songs_result.mat'], 'results');
+    results.method = options.keyword.method;
+    if strcmp(results.method, 'tfidf')
+        results.tfidf_method = options.keyword.tfidf.method;
+    end
+    
+    if strcmp(results.method, 'tfidf')
+        save([scratch filesep 'test_songs_' options.keyword.method '_' options.keyword.tfidf.method '_result.mat'], 'results');
+    else
+        save([scratch filesep 'test_songs_' options.keyword.method '_result.mat'], 'results');
+    end
     time_elapsed = toc(start_time);
     fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
 end

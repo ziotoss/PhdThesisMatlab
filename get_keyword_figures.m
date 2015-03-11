@@ -1,6 +1,5 @@
-function get_keyword_figures(keyword_ftr_file, top_n)
+function get_keyword_figures(scratch, ftr_result, options)
 
-    load(['scratch' filesep keyword_ftr_file '.mat']);
     song_ftr = ftr_result.features;
     keywords = ftr_result.keywords;
     
@@ -8,8 +7,8 @@ function get_keyword_figures(keyword_ftr_file, top_n)
     
     for i = 1:length(song_ftr)
         ftr = song_ftr(i).song_ftr;
-        top_n_idx = zeros(1, top_n);
-        for j = 1:top_n
+        top_n_idx = zeros(1, options.keyword.top_n);
+        for j = 1:options.keyword.top_n
             [~, idx] = max(ftr);
             ftr(idx) = 0;
             top_n_idx(j) = idx;
@@ -19,5 +18,9 @@ function get_keyword_figures(keyword_ftr_file, top_n)
         fig_data(i).top_n_keywords = keywords(top_n_idx);
     end
 
-    save(['scratch' filesep 'keyword_figure.mat'], 'fig_data');
+    if strcmp(options.keyword.method, 'tfidf')
+        save([scratch filesep 'top_' num2str(options.keyword.top_n) '_keywords_' options.keyword.method '_' options.keyword.tfidf.method '.mat'], 'fig_data');
+    else
+        save([scratch filesep 'top_' num2str(options.keyword.top_n) '_keywords_' options.keyword.method '.mat'], 'fig_data');
+    end
 end
