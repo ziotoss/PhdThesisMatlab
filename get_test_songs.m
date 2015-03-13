@@ -1,6 +1,7 @@
 function processed_songs = get_test_songs(scratch, options)
 
-    if ~exist([scratch filesep 'test_songs.mat'], 'file');
+    if ~exist([scratch filesep 'test_songs_wlimit_' num2str(options.keyword.word_count_limit) ...
+                                         '_elimit_' num2str(options.keyword.doc_length_limit) '.mat'], 'file');
         hts_folder = '_hts_preprocessed';
         file_path = 'D:\Data\Keyword\TestSongs';
 
@@ -103,17 +104,13 @@ function processed_songs = get_test_songs(scratch, options)
         end
         
         % Remove words that occur less than average per word occurrence.
-        if options.keyword.filter_words
-            total_words = sum(sum(occ_mat));
-            average_word_occ = floor(total_words / episode_count);
-            average_word_occ = floor(average_word_occ / 2);
-            remove_idx = sum(occ_mat, 1) <= average_word_occ;
-            dictionary(remove_idx) = [];
-            occ_mat(:, remove_idx) = [];
-        end
+        remove_idx = sum(occ_mat, 1) <= options.keyword.word_count_limit;
+        dictionary(remove_idx) = [];
+        occ_mat(:, remove_idx) = [];
         
-        dictionary(1) = [];
-        occ_mat(:,1) = [];
+        empty_idx = find(strcmp(dictionary, ''));
+        dictionary(empty_idx) = [];
+        occ_mat(:,empty_idx) = [];
         
         processed_songs.test_songs = test_songs;
         processed_songs.occ_mat = occ_mat;
@@ -121,12 +118,14 @@ function processed_songs = get_test_songs(scratch, options)
         processed_songs.partition_num = partition_num;
         processed_songs.episode_count = episode_count;
         time_elapsed = toc(start_time);
-        save([scratch filesep 'test_songs.mat'], 'processed_songs');
+        save([scratch filesep 'test_songs_wlimit_' num2str(options.keyword.word_count_limit) ...
+                                        '_elimit_' num2str(options.keyword.doc_length_limit) '.mat'], 'processed_songs');
         fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
     else
         start_time = tic;
         fprintf(1, 'Loading test_songs file.\n');
-        load([scratch filesep 'test_songs.mat']);
+        load([scratch filesep 'test_songs_wlimit_' num2str(options.keyword.word_count_limit) ...
+                                        '_elimit_' num2str(options.keyword.doc_length_limit) '.mat']);
         time_elapsed = toc(start_time);
         fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
     end
