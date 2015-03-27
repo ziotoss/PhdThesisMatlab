@@ -9,16 +9,16 @@ options.preproc.pca.eps = 0.01;
 options.preproc.pca.retained = 0.9;
 
 %%%%% FEATURE LEARNING OPTIONS %%%%%
-options.fl.rbm.type = 'gaussian'; % binary, gaussian, poisson
-if strcmp(options.fl.rbm.type, 'binary')
+options.fl.rbm.vistype = 'gaussian'; % binary, gaussian, poisson
+if strcmp(options.fl.rbm.vistype, 'binary')
     options.fl.rbm.epsilon = 0.01;
-elseif strcmp(options.fl.rbm.type, 'poisson')
+elseif strcmp(options.fl.rbm.vistype, 'poisson')
     options.fl.rbm.epsilon = 0.0001;
-elseif strcmp(options.fl.rbm.type, 'gaussian')
+elseif strcmp(options.fl.rbm.vistype, 'gaussian')
     options.fl.rbm.epsilon = 0.001;
 end
 
-if strcmp(options.fl.rbm.type, 'gaussian')
+if strcmp(options.fl.rbm.vistype, 'gaussian')
     options.fl.rbm.weight_cost = 0.001;
 else
     options.fl.rbm.weight_cost = 0.002;
