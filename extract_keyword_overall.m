@@ -24,28 +24,8 @@ function results = extract_keyword_overall(scratch, processed_songs, options)
         
     % Methods to normalize E_norm(w). (tfidf, original, etc);
     if strcmp(options.keyword.method, 'tfidf')
-        if strcmp(options.keyword.tfidf.method, 'full')
-            tf = sum(occ_mat, 1);
-            idf = zeros(1, length(dictionary));
-            for i = 1:length(dictionary)
-                count = 0;
-                for j = 1:length(test_songs)
-                    for k = 1:length(test_songs(j).episodes)
-                        if ~isempty(find(strcmp(test_songs(j).episodes(k).content_hts, dictionary(i)) == 1, 1))
-                            count = count + 1;
-                        end
-                    end
-                end
-                idf(i) = count;
-            end
-            idf = log(episode_count ./ idf);
-            E_w = tf .* idf;
-            results.tf = tf;
-            results.idf = idf;
-            results.E_w = E_w;
-        elseif strcmp(options.keyword.tfidf.method, 'cluster')
-            
-        elseif strcmp(options.keyword.tfidf.method, 'document')
+        
+        if strcmp(options.keyword.tfidf.method, 'document')
             tf = zeros(episode_count, length(dictionary));
             idf = zeros(1, length(dictionary));
             episodes = [];
@@ -61,22 +41,53 @@ function results = extract_keyword_overall(scratch, processed_songs, options)
                     end
                 end
             end
-             
-%              max_tf = max(tf, [], 2);
-%              tf = 0.5 + (0.5 * tf ./ repmat(max_tf, 1, size(tf, 2))); 
-             
-%             for i = 1:size(tf, 1)
-%                 tf(i, :) = tf(i, :) / sum(tf(i, :));
-%             end
-            
+
             doc_count = idf;
             idf = log(episode_count ./ idf);
-            tfidf = tf .* repmat(idf, size(tf, 1), 1);
+            tf_norm = tf ./ repmat(sum(tf, 2), 1, size(tf, 2));
+            tfidf = tf_norm .* repmat(idf, size(tf_norm, 1), 1);
             results.doc_count = doc_count;
             results.tf = tf;
+            results.tf_norm = tf_norm;
             results.idf = idf;
             results.tfidf = tfidf;
             results.E_w = mean(tfidf);
+            
+        elseif strcmp(options.keyword.tfidf.method, 'song')
+            tf = occ_mat;
+            tf_norm = tf ./ repmat(sum(tf, 2), 1, size(tf, 2));
+            doc_count = sum(occ_mat ~= 0, 1);
+            idf = log(episode_count ./ doc_count);
+            tfidf = tf_norm .* repmat(idf, size(tf_norm, 1), 1);
+            results.doc_count = doc_count;
+            results.tf = tf;
+            results.tf_norm = tf_norm;
+            results.idf = idf;
+            results.tfidf = tfidf;
+            results.E_w = mean(tfidf);
+        
+        elseif strcmp(options.keyword.tfidf.method, 'full') % Need validation of this approach
+            tf = sum(occ_mat, 1);
+            idf = zeros(1, length(dictionary));
+            for i = 1:length(dictionary)
+                count = 0;
+                for j = 1:length(test_songs)
+                    for k = 1:length(test_songs(j).episodes)
+                        if ~isempty(find(strcmp(test_songs(j).episodes(k).content_hts, dictionary(i)) == 1, 1))
+                            count = count + 1;
+                        end
+                    end
+                end
+                idf(i) = count;
+            end
+            idf = log(episode_count ./ idf);
+            tf_norm = tf ./ repmat(sum(tf, 2), 1, size(tf, 2));
+            E_w = tf_norm .* idf;
+            results.tf = tf;
+            results.tf_norm = tf_norm;
+            results.idf = idf;
+            results.E_w = E_w;
+
         else
             fprintf(1, 'Invalid tf-idf method. Check options.keyword.tfidf.method.\n');
             return;
@@ -104,50 +115,44 @@ function results = extract_keyword_overall(scratch, processed_songs, options)
         p_w = fi_w ./ repmat(fi_w_sum, size(occ_mat, 1), 1);
         S_w_tmp = sum(p_w .* log2(p_w + eps), 1);
         S_w = (-1 / log2(partition_num)) * S_w_tmp;
-% 
-%         idf = zeros(1, length(dictionary));
-%         for i = 1:length(dictionary)
-%             count = 0;
-%             for j = 1:length(test_songs)
-%                 for k = 1:length(test_songs(j).episodes)
-%                     if ~isempty(find(strcmp(test_songs(j).episodes(k).content_hts, dictionary(i)) == 1, 1))
-%                         count = count + 1;
-%                     end
-%                 end
-%             end
-%             idf(i) = count;
-%         end
-        tf = zeros(episode_count, length(dictionary));
-        idf = zeros(1, length(dictionary));
-        episodes = [];
-        for i = 1:length(test_songs)
-            episodes = [episodes, test_songs(i).episodes];
-        end
 
-        for i = 1:length(episodes)
-            for j = 1:length(dictionary)
-                if ~isempty(find(strcmp(episodes(i).content_hts, dictionary{j}) == 1, 1))
-                    tf(i, j) = tf(i, j) + length(find(strcmp(episodes(i).content_hts, dictionary{j}) == 1));
-                    idf(j) = idf(j) + 1;
+        if strcmp(options.keyword.tfidf.method, 'document')
+            tf = zeros(episode_count, length(dictionary));
+            idf = zeros(1, length(dictionary));
+            episodes = [];
+            for i = 1:length(test_songs)
+                episodes = [episodes, test_songs(i).episodes];
+            end
+
+            for i = 1:length(episodes)
+                for j = 1:length(dictionary)
+                    if ~isempty(find(strcmp(episodes(i).content_hts, dictionary{j}) == 1, 1))
+                        tf(i, j) = tf(i, j) + length(find(strcmp(episodes(i).content_hts, dictionary{j}) == 1));
+                        idf(j) = idf(j) + 1;
+                    end
                 end
             end
-        end
 
-%         max_tf = max(tf, [], 2);
-%         tf = 0.5 + (0.5 * tf ./ repmat(max_tf, 1, size(tf, 2))); 
+            idf = log(episode_count ./ idf);
+            tf_norm = tf ./ repmat(sum(tf, 2), 1, size(tf, 2));
+            tfidf = tf_norm .* repmat(idf, size(tf_norm, 1), 1);
         
-%         for i = 1:size(tf, 1)
-%             tf(i, :) = tf(i, :) / sum(tf(i, :));
-%         end
-
-        idf = log(episode_count ./ idf);
-        tfidf = tf .* repmat(idf, size(tf, 1), 1);
-
-        %idf = log(episode_count ./ idf);
-        %S_ran = n_w .* idf;
-        %E_w = (1 - S_w) .* S_ran;
+        elseif strcmp(options.keyword.tfidf.method, 'song')
+            tf = occ_mat;
+            tf_norm = tf ./ repmat(sum(tf, 2), 1, size(tf, 2));
+            doc_count = sum(occ_mat ~= 0, 1);
+            idf = log(episode_count ./ doc_count);
+            tfidf = tf_norm .* repmat(idf, size(tf_norm, 1), 1);
+        
+        elseif strcmp(options.keyword.tfidf.method, 'full')
+            
+        else
+            fprintf(1, 'Invalid tf-idf method. Should be document, song, or full.\n');
+            return;
+        end
         E_w = (1 - S_w) .* mean(tfidf);
         results.tf = tf;
+        results.tf_norm = tf_norm;
         results.idf = idf;
         results.tfidf = tfidf;
         results.p_w = p_w;
@@ -165,10 +170,10 @@ function results = extract_keyword_overall(scratch, processed_songs, options)
         results.tfidf_method = options.keyword.tfidf.method;
     end
     
-    if strcmp(results.method, 'tfidf')
-        save([scratch filesep 'test_songs_' options.keyword.method '_' options.keyword.tfidf.method '_result.mat'], 'results');
+    if strcmp(results.method, 'tfidf') || strcmp(results.method, 'hybrid')
+        save([scratch filesep 'keyword_' options.keyword.method '_' options.keyword.tfidf.method '_result.mat'], 'results');
     else
-        save([scratch filesep 'test_songs_' options.keyword.method '_result.mat'], 'results');
+        save([scratch filesep 'keyword_' options.keyword.method '_result.mat'], 'results');
     end
     time_elapsed = toc(start_time);
     fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
