@@ -1,16 +1,16 @@
-function evaluation_songs = get_evaluation_data(scratch);
+function evaluation_songs = get_evaluation_data(scratch)
     
-    load([scratch filesep 'top_20_hybrid_song_ftr_global.mat']);
+    load([scratch filesep 'top_40_hybrid_song_ftr_global.mat']);
     hybrid_global = fig_data;
-    load([scratch filesep 'top_20_hybrid_song_ftr_song.mat']);
+    load([scratch filesep 'top_40_hybrid_song_ftr_song.mat']);
     hybrid_song = fig_data;
-    load([scratch filesep 'top_20_shannon_ftr_global.mat']);
+    load([scratch filesep 'top_40_shannon_ftr_global.mat']);
     shannon_global = fig_data;
-    load([scratch filesep 'top_20_shannon_ftr_song.mat']);
+    load([scratch filesep 'top_40_shannon_ftr_song.mat']);
     shannon_song = fig_data;
-    load([scratch filesep 'top_20_tfidf_song_ftr_global.mat']);
+    load([scratch filesep 'top_40_tfidf_song_ftr_global.mat']);
     tfidf_global = fig_data;
-    load([scratch filesep 'top_20_tfidf_song_ftr_song.mat']);
+    load([scratch filesep 'top_40_tfidf_song_ftr_song.mat']);
     tfidf_song = fig_data;
     
     load([scratch filesep 'test_songs_wlimit_20_elimit_20.mat']);

@@ -1,9 +1,16 @@
 function ftr_result = extract_keyword_feature(scratch, processed_songs, results, options)
 
+    % TODO: Apply algorithm based on individual documents
     if strcmp(options.keyword.ftr.method, 'individual')
         
     elseif strcmp(options.keyword.ftr.method, 'song')
-        word_importance = results.occ_mat .* repmat(results.E_w, size(results.occ_mat, 1), 1);
+        if strcmp(options.keyword.method, 'tfidf')
+            word_importance = results.tfidf;
+        else % TODO: What should happen in hybrid case?
+            occ_mat = results.occ_mat;
+            occ_mat = occ_mat ./ repmat(sum(occ_mat, 2), 1, size(occ_mat, 2));
+            word_importance = occ_mat .* repmat(results.E_w, size(results.occ_mat, 1), 1);
+        end
         test_songs = processed_songs.test_songs;
         
         start_time = tic;

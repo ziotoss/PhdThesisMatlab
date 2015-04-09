@@ -57,7 +57,7 @@ function results = extract_keyword_overall(scratch, processed_songs, options)
             tf = occ_mat;
             tf_norm = tf ./ repmat(sum(tf, 2), 1, size(tf, 2));
             doc_count = sum(occ_mat ~= 0, 1);
-            idf = log(episode_count ./ doc_count);
+            idf = log(size(tf, 1) ./ doc_count);
             tfidf = tf_norm .* repmat(idf, size(tf_norm, 1), 1);
             results.doc_count = doc_count;
             results.tf = tf;

@@ -1,6 +1,6 @@
 function processed_songs = get_test_songs(scratch, options)
 
-    if ~exist([scratch filesep 'test_songs_wlimit_' num2str(options.keyword.word_count_limit) ...
+    if ~exist(['data' filesep 'test_songs_wlimit_' num2str(options.keyword.word_count_limit) ...
                                          '_elimit_' num2str(options.keyword.doc_length_limit) '.mat'], 'file');
         hts_folder = '_hts_preprocessed';
         file_path = 'D:\Data\Keyword\TestSongs';
@@ -56,6 +56,7 @@ function processed_songs = get_test_songs(scratch, options)
                     end
                 end
             end
+            test_songs(i).epi_count = length(song_files);
             test_songs(i).dictionary = unique(vocabs);
         end
 
@@ -118,13 +119,13 @@ function processed_songs = get_test_songs(scratch, options)
         processed_songs.partition_num = partition_num;
         processed_songs.episode_count = episode_count;
         time_elapsed = toc(start_time);
-        save([scratch filesep 'test_songs_wlimit_' num2str(options.keyword.word_count_limit) ...
+        save(['data' filesep 'test_songs_wlimit_' num2str(options.keyword.word_count_limit) ...
                                         '_elimit_' num2str(options.keyword.doc_length_limit) '.mat'], 'processed_songs');
         fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);
     else
         start_time = tic;
         fprintf(1, 'Loading test_songs file.\n');
-        load([scratch filesep 'test_songs_wlimit_' num2str(options.keyword.word_count_limit) ...
+        load(['data' filesep 'test_songs_wlimit_' num2str(options.keyword.word_count_limit) ...
                                         '_elimit_' num2str(options.keyword.doc_length_limit) '.mat']);
         time_elapsed = toc(start_time);
         fprintf(1, ' Done. Time elapsed is %.2f seconds.\n', time_elapsed);

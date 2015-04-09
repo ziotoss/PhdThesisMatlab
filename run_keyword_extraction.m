@@ -7,6 +7,9 @@ function run_keyword_extraction(scratch)
     if ~exist(scratch, 'dir')
         mkdir(scratch)
     end
+
+    keyword_options;
+    processed_songs = get_test_songs(scratch, options);
     
     for i = 1:length(methods)
         if strcmp(methods{i}, 'tfidf') || strcmp(methods{i}, 'hybrid')
@@ -16,7 +19,6 @@ function run_keyword_extraction(scratch)
                     options.keyword.method = methods{i};
                     options.keyword.tfidf.method = tfidf_methods{j};
                     options.keyword.ftr.method = ftr_methods{k};
-                    processed_songs = get_test_songs(scratch, options);
                     results = extract_keyword_overall(scratch, processed_songs, options);
                     ftr_result = extract_keyword_feature(scratch, processed_songs, results, options);
                     get_keyword_figures(scratch, ftr_result, options);
@@ -27,7 +29,6 @@ function run_keyword_extraction(scratch)
                 keyword_options;
                 options.keyword.method = methods{i};
                 options.keyword.ftr.method = ftr_methods{j};
-                processed_songs = get_test_songs(scratch, options);
                 results = extract_keyword_overall(scratch, processed_songs, options);
                 ftr_result = extract_keyword_feature(scratch, processed_songs, results, options);
                 get_keyword_figures(scratch, ftr_result, options);
