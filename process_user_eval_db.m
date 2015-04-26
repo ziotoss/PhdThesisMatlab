@@ -43,7 +43,7 @@ function processed_result = process_user_eval_db(scratch, fig_flag)
             processed_result(i).selected_keywords_avg = sum(keyword_count) / size(processed_result(i).user_info, 1);
         end
         
-        test_song_id = [80, 79, 89, 76, 11, 72, 38, 52, 57, 20];
+        test_song_id = [20, 80, 79, 89, 76, 11, 72, 38, 52, 57];
         load('150408_scratch\top_40_tfidf_song_ftr_song.mat');
         for i = 1:length(test_song_id)
             tfidf_keywords = fig_data(test_song_id(i)).top_n_keywords(1:20);
